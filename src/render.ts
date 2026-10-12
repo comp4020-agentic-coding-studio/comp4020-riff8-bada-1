@@ -127,8 +127,14 @@ const CSS = `
       column-gap: 2rem;
     }
   }
+  .points-short { display: none; }
   @media (max-width: 59.99rem) {
-    .points { position: sticky; top: 0.5rem; z-index: 2; }
+    .points { position: sticky; top: 0.5rem; z-index: 2; padding: 0.6rem 0.9rem; }
+    .points h2 { font-size: 1rem; margin: 0; }
+    .points .pips { display: none; }
+    .points p { font-size: 0.85rem; }
+    .points-long { display: none; }
+    .points-short { display: inline; }
   }
   form { margin: 0; }
   .field { margin: 0 0 0.75rem; }
@@ -329,7 +335,9 @@ const CSS = `
   }
 
   .readme { max-width: 46rem; padding-bottom: 3rem; }
-  .readme article { padding: 1.25rem 1.5rem; }
+  .readme article { padding: 1.25rem clamp(1rem, 4vw, 1.5rem); }
+  table { overflow-wrap: normal; }
+  td:first-child { white-space: nowrap; }
   .readme table { width: 100%; border-collapse: collapse; font-size: 0.9rem; display: block; overflow-x: auto; }
   .readme th, .readme td { text-align: left; padding: 0.4rem 0.5rem; border-top: 1px solid var(--line); vertical-align: top; }
   .readme h2 { margin-top: 1.75rem; font-size: 1.3rem; }
@@ -545,7 +553,7 @@ export function pointsPanel(p: Points): string {
   return `<section class="points panel" aria-labelledby="points-title" data-next-ms="${p.nextInMs ?? ""}">
   <h2 id="points-title">Your play points: <span data-points>${p.points}</span>/${MAX_PLAY_POINTS}</h2>
   <div class="pips" aria-hidden="true">${pips}</div>
-  <p><span data-next>${next}</span> One comes back every minute, up to ${MAX_PLAY_POINTS}. Posting and replying are free. <a href="#how-to-play">How to play</a></p>
+  <p><span data-next>${next}</span> <span class="points-long">One comes back every minute, up to ${MAX_PLAY_POINTS}. Posting and replying are free.</span><span class="points-short">+1 a minute, up to ${MAX_PLAY_POINTS}. Posting is free.</span> <a href="#how-to-play">How to play</a></p>
 </section>`;
 }
 
@@ -792,6 +800,12 @@ export const pageScript = `<script>
     }
   };
 
+  // the arrival glow plays once; leaving the class on would block later effects
+  const arrive = (el) => {
+    el.classList.add("arrive");
+    setTimeout(() => el.classList.remove("arrive"), 1300);
+  };
+
   const insertThread = (list, li) => {
     const id = Number(li.dataset.root);
     const before = [...list.children].find((other) => Number(other.dataset.root) < id);
@@ -806,7 +820,7 @@ export const pageScript = `<script>
     if (!existing) {
       const list = document.querySelector("ol.threads");
       document.querySelector(".wall .wall-empty")?.remove();
-      if (live) fresh.classList.add("arrive");
+      if (live) arrive(fresh);
       insertThread(list, fresh);
       rememberName(mainName?.value);
       return;
@@ -817,7 +831,7 @@ export const pageScript = `<script>
       if (old) morph(old, card);
       else {
         const li = card.parentElement;
-        if (live) li.classList.add("arrive");
+        if (live) arrive(li);
         replies.append(li);
       }
     }
@@ -896,9 +910,11 @@ export const pageScript = `<script>
       const text = emoji.closest("form").querySelector("textarea");
       const start = text.selectionStart ?? text.value.length, end = text.selectionEnd ?? start;
       text.setRangeText(emoji.dataset.emoji, start, end, "end");
-      text.focus();
+      // back to the text after a tap; a keyboard user stays in the picker
+      if (e.detail !== 0) text.focus();
       return;
     }
+    if (e.target.closest('a[href="#how-to-play"]')) document.getElementById("how-to-play").open = true;
     const cancel = e.target.closest(".cancel");
     if (cancel) {
       e.preventDefault();
