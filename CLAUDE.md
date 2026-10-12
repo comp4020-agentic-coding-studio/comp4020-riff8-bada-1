@@ -42,8 +42,11 @@ change first --- not the other way around.
 - No accounts. Identity is a random id in a first-party cookie, issued on
   first visit. Never add passwords, email, or OAuth --- this app only needs
   to tell two visitors apart, not verify who they are.
-- Marks are permanent once posted: no edit, no delete. That's a deliberate
-  scope decision (README explains why), not a gap to quietly fill in.
+- A visitor can withdraw their own notes and replies, never anyone
+  else's, checked against the visitor cookie on the server for every
+  request. Withdrawal removes the content from storage, leaves a
+  placeholder, and keeps other people's replies. There is still no edit
+  and no restore (README explains why).
 - Escape every piece of user-submitted text before it reaches HTML
   (`escapeHtml` in `src/render.ts`). Never string-interpolate a name or a
   mark's body straight into a template.
@@ -53,10 +56,10 @@ change first --- not the other way around.
 - One SQLite file on the Fly volume (`node:sqlite`, no native dependency,
   no separate database service) is the only storage. Don't reach for a
   second store or an ORM for a schema this small.
-- Build to the crit that's currently open, not ahead of it: real-time
-  updates are crit 9's bar, server-side logging is crit 11's. Land them when
-  their crit opens, not preemptively --- a feature built early is one more
-  thing to keep correct while the next crit's actual bar goes unaddressed.
+- Build to the brief that's currently open, not ahead of it --- a feature
+  built early is one more thing to keep correct while the actual bar goes
+  unaddressed. Server logs name visitors by a short hash of their cookie,
+  never the cookie itself.
 - Keep dependencies to what's load-bearing. `marked` renders README.md at
   `/readme/`, correctly, without hand-rolling markdown parsing; anything
   else new needs the same justification.
