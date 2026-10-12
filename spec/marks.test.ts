@@ -322,6 +322,16 @@ describe("play", () => {
     expect(hp[0] + hp[1]).toBe(10);
   });
 
+  it("lets a shield absorb only one of several simultaneous hits", async () => {
+    const owner = visitor();
+    const note = await owner.note("Owner", `shield-race-${randomUUID()}`);
+    await owner.play("shield", note);
+    const hits = await Promise.all([visitor(), visitor(), visitor()].map((v) => v.play("attack", note)));
+    expect(hits.every((h) => h.ok)).toBe(true);
+    expect(hits.filter((h) => h.message.includes("shield blocked"))).toHaveLength(1);
+    expect(card(await anon.wall(), note)).toContain("Health 8 of 10.");
+  });
+
   it("refuses withdrawn targets for free", async () => {
     const owner = visitor();
     const player = visitor();
@@ -428,7 +438,7 @@ describe("live updates", () => {
 
     // while "disconnected"
     const reply = await friend.reply(note, "Friend", `kept-${secret}`);
-    await friend.play("attack", reply);
+    expect((await anon.play("attack", reply)).ok).toBe(true);
     await author.withdraw(note);
     const other = await anon.note("Other", `other-${secret}`);
 
@@ -441,6 +451,7 @@ describe("live updates", () => {
       expect(thread.change).toBeNull();
       expect(thread.html).toContain("This note was withdrawn.");
       expect(thread.html).toContain(`kept-${secret}`);
+      expect(thread.html).toMatch(new RegExp(`kept-${secret}[^]*?Health 9 of 10.`));
       expect(thread.html).not.toContain(`>${secret}<`);
       // ids only go up, so the browser's Last-Event-ID always moves forward
       expect(got.map((e) => e.id)).toEqual([...got.map((e) => e.id)].sort((a, b) => a - b));
